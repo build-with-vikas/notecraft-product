@@ -81,7 +81,7 @@ export default function Page() {
         for (let i = 0; i < source.getPageCount(); i++) { const part = await PDFDocument.create(); const [page] = await part.copyPages(source, [i]); part.addPage(page); const bytes = await part.save(); created.push({ name: `${baseName(files[0].name)}-page-${String(i + 1).padStart(2, '0')}.pdf`, blob: new Blob([bytes as BlobPart], { type: 'application/pdf' }), meta: `Page ${i + 1} of ${source.getPageCount()}` }); setProgress(15 + Math.round(((i + 1) / source.getPageCount()) * 75)) }
       } else if (tool === 'jpg') {
         const data = new Uint8Array(await files[0].arrayBuffer())
-        const pdf = await getDocument({ data, disableWorker: true, useWorkerFetch: false, isEvalSupported: false, disableFontFace: true }).promise
+        const pdf = await getDocument({ data, disableWorker: true, useWorkerFetch: false, isEvalSupported: true, disableFontFace: false, verbosity: 0 }).promise
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i)
           const baseViewport = page.getViewport({ scale: 1 })
@@ -110,7 +110,7 @@ export default function Page() {
     } catch (cause) {
       console.error('[v0] document conversion failed', cause)
       const message = cause instanceof Error ? cause.message.toLowerCase() : ''
-      setError(message.includes('password') || message.includes('encrypted') ? 'This PDF is password-protected. Remove its password and try again.' : 'This PDF could not be rendered by the browser. Try exporting an unlocked copy or a smaller PDF.')
+      setError(message.includes('password') || message.includes('encrypted') ? 'This PDF is password-protected. Remove its password and try again.' : message.includes('invalid') || message.includes('header') ? 'This file does not appear to be a valid PDF. Re-export it as PDF and try again.' : 'This PDF could not be rendered by the browser. Try a standard PDF export without password protection.')
     }
     finally { setBusy(false); setProgress(100) }
   }
