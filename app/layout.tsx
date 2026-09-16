@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'NoteCraft — Faculty PDFs, ready in minutes',
-  description: 'Turn messy faculty PDFs into upload-ready notes with one focused workspace.',
+  title: 'NoteCraft — Make every page land better',
+  description: 'Merge, split, convert, and prepare documents privately in your browser.',
   generator: 'NoteCraft',
 }
 
