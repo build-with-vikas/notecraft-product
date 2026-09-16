@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PDFDocument } from 'pdf-lib'
 import JSZip from 'jszip'
-import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
+
+GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 import { ArrowDown, ArrowRight, Check, Download, FileImage, FilePlus2, FileStack, Layers3, Menu, Play, RefreshCw, Scissors, Sparkles, Trash2, Upload, X, Zap } from 'lucide-react'
 
 type Tool = 'merge' | 'split' | 'jpg' | 'image-pdf' | 'pptx'
