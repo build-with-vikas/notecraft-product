@@ -80,8 +80,26 @@ export default function Page() {
         const source = await PDFDocument.load(await files[0].arrayBuffer())
         for (let i = 0; i < source.getPageCount(); i++) { const part = await PDFDocument.create(); const [page] = await part.copyPages(source, [i]); part.addPage(page); const bytes = await part.save(); created.push({ name: `${baseName(files[0].name)}-page-${String(i + 1).padStart(2, '0')}.pdf`, blob: new Blob([bytes as BlobPart], { type: 'application/pdf' }), meta: `Page ${i + 1} of ${source.getPageCount()}` }); setProgress(15 + Math.round(((i + 1) / source.getPageCount()) * 75)) }
       } else if (tool === 'jpg') {
-        const pdf = await getDocument({ data: await files[0].arrayBuffer(), disableWorker: true }).promise
-        for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const viewport = page.getViewport({ scale: Math.min(2, 1600 / page.getViewport({ scale: 1 }).width) }); const canvas = document.createElement('canvas'); canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height); const context = canvas.getContext('2d')!; await page.render({ canvasContext: context, viewport }).promise; const blob = await new Promise<Blob>((resolve) => canvas.toBlob((value) => resolve(value!), 'image/jpeg', .92)); created.push({ name: `${baseName(files[0].name)}-page-${String(i).padStart(2, '0')}.jpg`, blob, meta: `JPG image · ${canvas.width} × ${canvas.height}` }); setProgress(15 + Math.round((i / pdf.numPages) * 75)) }
+        const data = new Uint8Array(await files[0].arrayBuffer())
+        const pdf = await getDocument({ data, disableWorker: true, useWorkerFetch: false, isEvalSupported: false, disableFontFace: true }).promise
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i)
+          const baseViewport = page.getViewport({ scale: 1 })
+          const viewport = page.getViewport({ scale: Math.min(2, 1600 / baseViewport.width) })
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.ceil(viewport.width)
+          canvas.height = Math.ceil(viewport.height)
+          const context = canvas.getContext('2d')
+          if (!context) throw new Error('Canvas rendering is unavailable in this browser.')
+          context.save()
+          context.fillStyle = '#ffffff'
+          context.fillRect(0, 0, canvas.width, canvas.height)
+          context.restore()
+          await page.render({ canvasContext: context, viewport }).promise
+          const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('JPG encoding failed.')), 'image/jpeg', .92))
+          created.push({ name: `${baseName(files[0].name)}-page-${String(i).padStart(2, '0')}.jpg`, blob, meta: `JPG image · ${canvas.width} × ${canvas.height}` })
+          setProgress(15 + Math.round((i / pdf.numPages) * 75))
+        }
       } else {
         const zip = await JSZip.loadAsync(await files[0].arrayBuffer()); const media = Object.keys(zip.files).filter((name) => /^ppt\/media\/.+\.(png|jpe?g|webp)$/i.test(name));
         for (const name of media) { const blob = await zip.files[name].async('blob'); created.push({ name: name.split('/').pop() || 'slide-image', blob, meta: 'Extracted presentation media' }) }
@@ -89,7 +107,11 @@ export default function Page() {
         setProgress(100)
       }
       setResults(created)
-    } catch { setError('The file could not be processed in this browser. Try an unlocked, smaller file.'); }
+    } catch (cause) {
+      console.error('[v0] document conversion failed', cause)
+      const message = cause instanceof Error ? cause.message.toLowerCase() : ''
+      setError(message.includes('password') || message.includes('encrypted') ? 'This PDF is password-protected. Remove its password and try again.' : 'This PDF could not be rendered by the browser. Try exporting an unlocked copy or a smaller PDF.')
+    }
     finally { setBusy(false); setProgress(100) }
   }
   async function downloadAll() { if (!results.length) return; const zip = new JSZip(); results.forEach((result) => zip.file(result.name, result.blob)); download(await zip.generateAsync({ type: 'blob' }), `notecraft-${tool}-results.zip`) }
