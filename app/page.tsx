@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PDFDocument } from 'pdf-lib'
 import JSZip from 'jszip'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
@@ -29,6 +29,21 @@ export default function Page() {
   const [progress, setProgress] = useState(0)
   const [mobileMenu, setMobileMenu] = useState(false)
   const active = tools.find((item) => item.id === tool)!
+  const [scrollProgress, setScrollProgress] = useState(0)
+
+  useEffect(() => {
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      setScrollProgress(max > 0 ? Math.min(1, window.scrollY / max) : 0)
+    }
+    const onScroll = () => { if (!frame) frame = window.requestAnimationFrame(update) }
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (frame) window.cancelAnimationFrame(frame) }
+  }, [])
 
   const accepted = tool === 'image-pdf' ? 'image/jpeg,image/png,image/webp' : tool === 'pptx' ? '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation' : '.pdf,application/pdf'
   const totalSize = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files])
@@ -79,7 +94,7 @@ export default function Page() {
   }
   async function downloadAll() { if (!results.length) return; const zip = new JSZip(); results.forEach((result) => zip.file(result.name, result.blob)); download(await zip.generateAsync({ type: 'blob' }), `notecraft-${tool}-results.zip`) }
 
-  return <main className="nc-shell">
+  return <main className="nc-shell" style={{ '--scroll-progress': scrollProgress } as React.CSSProperties}>
     <header className="nc-nav"><a href="#top" className="nc-brand"><span><Sparkles size={16} /></span> NOTECRAFT</a><nav className={mobileMenu ? 'nc-navlinks open' : 'nc-navlinks'}><a href="#studio">Studio</a><a href="#tools">Tools</a><a href="#method">Method</a></nav><button className="nc-menu" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Open navigation"><Menu size={18} /></button><button className="nc-nav-cta" onClick={() => inputRef.current?.click()}>Open files <ArrowRight size={14} /></button></header>
     <section id="top" className="nc-hero"><div className="nc-orbit orbit-one" /><div className="nc-orbit orbit-two" /><div className="nc-hero-copy"><p className="nc-kicker"><span className="nc-pulse" /> A private document studio</p><h1>Make every page<br /><em>land better.</em></h1><p className="nc-hero-sub">Merge, split, convert, and prepare documents in one beautifully controlled workspace. Your files stay on your device.</p><div className="nc-hero-actions"><a href="#studio" className="nc-primary"><Play size={15} fill="currentColor" /> Start working</a><a href="#tools" className="nc-text-link">Explore the tools <ArrowDown size={14} /></a></div></div><div className="nc-hero-stack" aria-hidden="true"><div className="stack-back" /><div className="stack-mid" /><div className="stack-front"><span>DOCUMENT<br /><b>STUDIO</b></span><div className="stack-line" /><small>LOCAL / PRIVATE / READY</small></div></div><div className="nc-scroll-cue"><span>Scroll to work</span><ArrowDown size={14} /></div></section>
     <section id="studio" className="nc-studio"><div className="nc-section-heading"><div><p className="nc-kicker">The workspace</p><h2>One place for<br /><em>the full job.</em></h2></div><p>Choose an operation, add your files, and let your browser do the heavy lifting. No account. No upload queue. No hidden bill.</p></div><div className="nc-studio-grid"><aside className="nc-tool-rail"><p className="rail-label">Choose an operation</p>{tools.map((item) => { const Icon = item.icon; return <button key={item.id} onClick={() => chooseTool(item.id)} className={tool === item.id ? 'nc-tool active' : 'nc-tool'}><span className="tool-index" style={{ color: item.color }}>{item.eyebrow}</span><Icon size={19} /><span><b>{item.label}</b><small>{item.description}</small></span><ArrowRight size={15} /></button> })}</aside><section className="nc-workbench"><div className="workbench-top"><div><span className="workbench-number">{active.eyebrow} / {active.label}</span><h3>{active.label}</h3></div><span className="local-badge"><Zap size={13} /> Runs locally</span></div><div className="nc-dropzone" onClick={() => inputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files) }}><input ref={inputRef} type="file" hidden multiple accept={accepted} onChange={(event) => addFiles(event.target.files)} /><div className="drop-icon"><Upload size={22} /></div><h4>{files.length ? `${files.length} file${files.length > 1 ? 's' : ''} ready` : 'Drop files here'}</h4><p>or click to browse · {tool === 'image-pdf' ? 'JPG, PNG, WebP' : tool === 'pptx' ? 'PPTX' : 'PDF'}</p></div>{files.length > 0 && <div className="file-list">{files.map((file, index) => <div className="file-row" key={`${file.name}-${index}`}><span className="file-type">{file.name.split('.').pop()?.toUpperCase()}</span><span className="file-name">{file.name}</span><span className="file-size">{(file.size / 1024 / 1024).toFixed(1)} MB</span><button onClick={() => setFiles(files.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${file.name}`}><X size={15} /></button></div>)}<div className="file-total">{files.length} file{files.length > 1 ? 's' : ''} · {(totalSize / 1024 / 1024).toFixed(1)} MB total</div></div>}{error && <p className="nc-error" role="alert">{error}</p>}<div className="workbench-actions"><button className="nc-run" disabled={busy || !files.length} onClick={run}>{busy ? <><RefreshCw size={15} className="spin" /> Working {progress}%</> : <><Sparkles size={15} /> Run {active.label}</>}</button>{results.length > 0 && <button className="nc-secondary" onClick={downloadAll}><Download size={15} /> Download ZIP</button>}</div>{busy && <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>}{results.length > 0 && <div className="result-panel"><div className="result-heading"><span><Check size={16} /> Ready to download</span><small>{results.length} result{results.length > 1 ? 's' : ''}</small></div>{results.map((result) => <div className="result-row" key={result.name}><div><b>{result.name}</b><small>{result.meta}</small></div><button onClick={() => download(result.blob, result.name)} aria-label={`Download ${result.name}`}><Download size={16} /></button></div>)}</div>}</section></div></section>
