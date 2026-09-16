@@ -23,6 +23,22 @@ button { font: inherit; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.01ms!important; } }
 @supports (animation-timeline: view()) { .nc-section-heading,.nc-studio-grid,.nc-tool-showcase,.nc-method,.nc-footer { animation: reveal linear both; animation-timeline: view(); animation-range: entry 10% cover 30%; } @keyframes reveal { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } } }
 
+/* Unified editorial system */
+.nc-shell { background: var(--paper); color: var(--ink); }
+.nc-nav { background: rgba(244,241,235,.88); }
+.nc-hero { background: var(--navy); }
+.nc-hero::before { background: radial-gradient(circle at 75% 38%, rgba(91,111,168,.34), transparent 27%), radial-gradient(circle at 15% 90%, rgba(201,121,99,.14), transparent 28%), linear-gradient(120deg, #111a2b 0%, #26334a 100%); }
+.nc-hero::after { color: rgba(244,241,235,.46); }
+.nc-kicker, .nc-hero h1 em, .nc-showcase-copy h2 em { color: var(--acid); }
+.nc-primary { background: var(--acid); color: var(--navy); }
+.nc-studio { background: var(--paper); }
+.nc-tool:hover, .nc-tool.active { background: #e9edf4; }
+.nc-dropzone { background: #eeeae3; }
+.nc-dropzone:hover { background: #e4e8f0; }
+.nc-tool-showcase { background-color: var(--navy); background-image: radial-gradient(circle at calc(80% - (var(--scroll-progress) * 18%)) 30%, rgba(91,111,168,.28), transparent 26%); }
+.nc-method { background: #e7e9ed; }
+
+
 /* Scroll-led motion system */
 .nc-shell { --scroll-progress: 0; }
 .paper-fragment { position: absolute; z-index: 5; width: 145px; height: 190px; padding: 18px; background: #eee8df; color: var(--ink); box-shadow: 0 24px 55px rgba(7,15,29,.22); font-size: 9px; letter-spacing: .14em; line-height: 1.5; opacity: .9; transform-style: preserve-3d; }
