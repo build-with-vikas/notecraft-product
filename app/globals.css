@@ -29,9 +29,12 @@ button { font: inherit; }
 .nc-shell { background: var(--paper); color: var(--ink); }
 .nc-nav { background: rgba(244,241,235,.88); }
 .nc-hero { background: var(--navy); }
-.pdf-constellation { position: absolute; z-index: 0; left: 48%; top: 47%; width: min(34vw, 500px); aspect-ratio: 1; transform: translate(-50%, -50%); border: 1px solid rgba(215,199,176,.12); border-radius: 50%; box-shadow: 0 0 100px rgba(91,111,168,.14), inset 0 0 70px rgba(215,199,176,.06); animation: constellation-breathe 8s ease-in-out infinite; }
+.pdf-constellation { position: absolute; z-index: 0; left: 48%; top: 47%; width: min(34vw, 500px); aspect-ratio: 1; transform: translate(calc(-50% + (var(--pointer-x) * 26px)), calc(-50% + (var(--pointer-y) * 20px))) rotate(calc(var(--pointer-x) * 3deg)); transition: transform .35s cubic-bezier(.16,1,.3,1); border: 1px solid rgba(215,199,176,.12); border-radius: 50%; box-shadow: 0 0 100px rgba(91,111,168,.14), inset 0 0 70px rgba(215,199,176,.06); animation: constellation-breathe 8s ease-in-out infinite; }
 .pdf-constellation span { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(244,241,235,.94); font-size: clamp(70px, 11vw, 180px); font-weight: 800; letter-spacing: -.12em; text-shadow: 0 0 35px rgba(215,199,176,.28); }
-.pdf-constellation i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #d7c7b0; box-shadow: 0 0 15px 4px rgba(215,199,176,.55); animation: particle-orbit 6s linear infinite; }
+.pdf-constellation i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #d7c7b0; box-shadow: 0 0 15px 4px rgba(215,199,176,.55); animation: particle-orbit 6s linear infinite; transition: transform .6s cubic-bezier(.16,1,.3,1); }
+.pdf-constellation i:nth-of-type(odd) { transform: translate(calc(var(--pointer-x) * 18px), calc(var(--pointer-y) * 13px)); }
+.pdf-constellation i:nth-of-type(even) { transform: translate(calc(var(--pointer-x) * -12px), calc(var(--pointer-y) * -9px)); }
+.pdf-constellation span { transform: translate(calc(var(--pointer-x) * -10px), calc(var(--pointer-y) * -8px)); transition: transform .45s cubic-bezier(.16,1,.3,1); }
 .pdf-constellation i:nth-of-type(1){left:12%;top:23%;}.pdf-constellation i:nth-of-type(2){right:16%;top:18%;animation-delay:-1s}.pdf-constellation i:nth-of-type(3){right:8%;top:58%;animation-delay:-2s}.pdf-constellation i:nth-of-type(4){left:19%;bottom:16%;animation-delay:-3s}.pdf-constellation i:nth-of-type(5){left:48%;top:8%;animation-delay:-4s}.pdf-constellation i:nth-of-type(6){right:29%;bottom:12%;animation-delay:-5s}.pdf-constellation i:nth-of-type(7){left:5%;top:59%;animation-delay:-2.5s}.pdf-constellation i:nth-of-type(8){right:6%;top:35%;animation-delay:-4.5s}
 .nc-hero::before { background: radial-gradient(circle at 75% 38%, rgba(91,111,168,.34), transparent 27%), radial-gradient(circle at 15% 90%, rgba(201,121,99,.14), transparent 28%), linear-gradient(120deg, #111a2b 0%, #26334a 100%); }
 .nc-hero::after { color: rgba(244,241,235,.46); }
@@ -62,4 +65,4 @@ button { font: inherit; }
 .nc-feature-cards article:nth-child(1) { transform: translateY(calc(var(--scroll-progress) * -18px)); }
 .nc-feature-cards article:nth-child(2) { transform: translateY(calc(-35px - (var(--scroll-progress) * 42px))); }
 .nc-feature-cards article:nth-child(3) { transform: translateY(calc(var(--scroll-progress) * 16px)); }
-@media (prefers-reduced-motion: reduce) { .nc-hero-stack, .nc-hero-copy, .nc-orbit, .nc-feature-cards article { transform: none !important; opacity: 1 !important; } }
+@media (prefers-reduced-motion: reduce) { .nc-hero-stack, .nc-hero-copy, .nc-orbit, .nc-feature-cards article, .pdf-constellation, .pdf-constellation span, .pdf-constellation i { transform: none !important; transition: none !important; animation: none !important; opacity: 1 !important; } }
