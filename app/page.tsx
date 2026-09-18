@@ -29,8 +29,85 @@ const tools: { id: Tool; label: string; eyebrow: string; description: string; ic
   { id: 'pipeline', label: 'PDF Alchemy', eyebrow: '06', description: 'Chain operations into one cinematic run.', icon: Sparkles, color: '#5b6fa8' },
 ]
 
+const tickerWords = ['MERGE', 'SPLIT', 'CONVERT', 'EXTRACT', 'ARRANGE', 'COMPRESS', 'RENDER', 'DELIVER']
+
 function download(blob: Blob, name: string) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 500) }
 function baseName(name: string) { return name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9-_ ]/gi, '').trim() || 'document' }
+
+const ncxStyles = `
+@keyframes ncx-drift { 0%,100% { transform: translate3d(0,0,0) scale(1) } 33% { transform: translate3d(6vw,-3vh,0) scale(1.18) } 66% { transform: translate3d(-4vw,4vh,0) scale(.9) } }
+@keyframes ncx-marquee { from { transform: translate3d(0,0,0) } to { transform: translate3d(-50%,0,0) } }
+@keyframes ncx-draw { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+@keyframes ncx-halo { 0%,100% { opacity: .25; transform: scale(1) } 50% { opacity: .7; transform: scale(1.14) } }
+@keyframes ncx-sweep { 0% { background-position: -140% 0 } 60%,100% { background-position: 240% 0 } }
+@keyframes ncx-rise { from { opacity: 0; transform: translate3d(0,22px,0) } to { opacity: 1; transform: none } }
+@keyframes ncx-float { 0%,100% { transform: translate3d(0,0,0); opacity: .18 } 50% { transform: translate3d(0,-26px,0); opacity: .6 } }
+@keyframes ncx-beam { 0% { transform: translateX(-100%) } 100% { transform: translateX(300%) } }
+
+.ncx-progress { position: fixed; inset: 0 0 auto 0; height: 3px; z-index: 90; pointer-events: none; }
+.ncx-progress i { display: block; height: 100%; width: 100%; transform-origin: 0 50%; transform: scaleX(var(--scroll-progress, 0)); background: linear-gradient(90deg,#2F9CF4,#7b7898,#c97963,#2F9CF4); background-size: 300% 100%; animation: ncx-sweep 6s linear infinite; box-shadow: 0 0 18px rgba(47,156,244,.65); transition: transform .12s linear; }
+
+.ncx-ticker { position: relative; overflow: hidden; border-top: 1px solid rgba(0,0,0,.07); border-bottom: 1px solid rgba(0,0,0,.07); padding: 20px 0; mask-image: linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent); -webkit-mask-image: linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent); }
+.ncx-ticker-track { display: flex; width: max-content; animation: ncx-marquee 26s linear infinite; }
+.ncx-ticker:hover .ncx-ticker-track { animation-play-state: paused; }
+.ncx-ticker-track span { display: inline-flex; align-items: center; gap: 28px; padding-right: 28px; font-size: clamp(22px,3.4vw,44px); font-weight: 800; letter-spacing: -.02em; white-space: nowrap; opacity: .16; }
+.ncx-ticker-track span i { width: 9px; height: 9px; border-radius: 50%; background: #2F9CF4; opacity: .9; font-style: normal; }
+.ncx-ticker-track span b { transition: opacity .3s ease, color .3s ease; }
+.ncx-ticker-track span b:hover { color: #2F9CF4; }
+
+.ncx-footer { position: relative; overflow: hidden; isolation: isolate; padding: 72px 6vw 34px; border-top: 1px solid rgba(0,0,0,.07); }
+.ncx-aurora { position: absolute; border-radius: 50%; filter: blur(80px); z-index: -1; pointer-events: none; }
+.ncx-aurora.a { width: 46vw; height: 46vw; left: -12vw; top: -18vw; background: radial-gradient(circle,rgba(47,156,244,.34),transparent 68%); animation: ncx-drift 22s ease-in-out infinite; }
+.ncx-aurora.b { width: 38vw; height: 38vw; right: -10vw; bottom: -16vw; background: radial-gradient(circle,rgba(201,121,99,.3),transparent 68%); animation: ncx-drift 28s ease-in-out infinite reverse; }
+.ncx-aurora.c { width: 30vw; height: 30vw; left: 42%; top: 10%; background: radial-gradient(circle,rgba(123,120,152,.26),transparent 70%); animation: ncx-drift 34s ease-in-out infinite; }
+.ncx-dust { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #2F9CF4; z-index: -1; animation: ncx-float 7s ease-in-out infinite; }
+
+.ncx-grid { position: relative; display: grid; grid-template-columns: minmax(260px,1.5fr) repeat(2,minmax(150px,1fr)); gap: 52px; max-width: 1280px; margin: 0 auto; }
+.ncx-grid > * { animation: ncx-rise .8s cubic-bezier(.2,.8,.2,1) both; }
+.ncx-grid > *:nth-child(2) { animation-delay: .12s }
+.ncx-grid > *:nth-child(3) { animation-delay: .24s }
+@media (max-width: 860px) { .ncx-grid { grid-template-columns: 1fr; gap: 40px } }
+
+.ncx-lockup { display: inline-flex; align-items: center; gap: 14px; cursor: default; }
+.ncx-shield { position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; transition: transform .5s cubic-bezier(.2,.9,.2,1); }
+.ncx-lockup:hover .ncx-shield { transform: rotate(-8deg) scale(1.12); }
+.ncx-shield svg { display: block; background: none; border: none; border-radius: 0; overflow: visible; }
+.ncx-shield::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; background: radial-gradient(circle,rgba(47,156,244,.45),transparent 65%); animation: ncx-halo 3.4s ease-in-out infinite; z-index: -1; }
+.ncx-shield path { stroke-dasharray: 1; animation: ncx-draw 2.2s cubic-bezier(.6,.1,.2,1) both; }
+.ncx-shield text { animation: ncx-rise .7s .9s ease both; }
+
+.ncx-wordmark { position: relative; font-size: clamp(22px,2.2vw,28px); font-weight: 800; letter-spacing: -.015em; background: linear-gradient(90deg,#2F9CF4 0%,#2F9CF4 38%,#9fd4ff 50%,#2F9CF4 62%,#2F9CF4 100%); background-size: 240% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: ncx-sweep 5.5s ease-in-out infinite; }
+
+.ncx-tag { margin: 18px 0 0; max-width: 340px; font-size: 14px; line-height: 1.65; opacity: .62; }
+
+.ncx-cta { position: relative; overflow: hidden; margin-top: 24px; display: inline-flex; align-items: center; gap: 9px; padding: 12px 22px; border: none; border-radius: 999px; cursor: pointer; background: #2F9CF4; color: #fff; font-size: 14px; font-weight: 650; box-shadow: 0 10px 26px -10px rgba(47,156,244,.9); transition: transform .3s cubic-bezier(.2,.9,.2,1), box-shadow .3s ease; }
+.ncx-cta:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 18px 34px -12px rgba(47,156,244,1); }
+.ncx-cta:active { transform: translateY(0) scale(.98); }
+.ncx-cta::after { content: ''; position: absolute; top: 0; left: 0; width: 40%; height: 100%; background: linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent); animation: ncx-beam 2.8s ease-in-out infinite; }
+.ncx-cta svg { transition: transform .3s ease; }
+.ncx-cta:hover svg { transform: translateX(4px); }
+
+.ncx-colhead { margin: 0 0 18px; font-size: 11px; font-weight: 650; letter-spacing: .16em; text-transform: uppercase; opacity: .45; }
+.ncx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ncx-link { position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 4px 0; font-size: 14px; color: inherit; text-decoration: none; opacity: .72; background: none; border: none; cursor: pointer; font-family: inherit; text-align: left; transition: opacity .25s ease, transform .35s cubic-bezier(.2,.9,.2,1), color .25s ease; }
+.ncx-link::before { content: ''; position: absolute; left: 0; bottom: 2px; height: 1px; width: 100%; transform: scaleX(0); transform-origin: 0 50%; background: #2F9CF4; transition: transform .38s cubic-bezier(.2,.9,.2,1); }
+.ncx-link:hover { opacity: 1; color: #2F9CF4; transform: translateX(7px); }
+.ncx-link:hover::before { transform: scaleX(1); }
+.ncx-link i { font-style: normal; opacity: 0; transform: translateX(-6px); transition: opacity .3s ease, transform .3s ease; }
+.ncx-link:hover i { opacity: 1; transform: translateX(0); }
+
+.ncx-base { position: relative; max-width: 1280px; margin: 52px auto 0; padding-top: 24px; display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: center; font-size: 13px; opacity: .55; }
+.ncx-base::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg,transparent,rgba(47,156,244,.55),rgba(201,121,99,.4),transparent); background-size: 220% 100%; animation: ncx-sweep 7s linear infinite; }
+.ncx-base p { margin: 0; }
+.ncx-live { display: inline-flex; align-items: center; gap: 8px; }
+.ncx-live i { width: 7px; height: 7px; border-radius: 50%; background: #34d17a; animation: ncx-halo 1.9s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ncx-progress i, .ncx-ticker-track, .ncx-aurora, .ncx-dust, .ncx-shield::after, .ncx-shield path,
+  .ncx-shield text, .ncx-wordmark, .ncx-cta::after, .ncx-grid > *, .ncx-base::before, .ncx-live i { animation: none !important; }
+  .ncx-wordmark { color: #2F9CF4; -webkit-text-fill-color: #2F9CF4; }
+}
+`
 
 export default function Page() {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -183,11 +260,86 @@ export default function Page() {
   async function downloadAll() { if (!results.length) return; const zip = new JSZip(); results.forEach((result) => zip.file(result.name, result.blob)); download(await zip.generateAsync({ type: 'blob' }), `notecraft-${tool}-results.zip`) }
 
   return <main className={`nc-shell mode-${mode}`} style={{ '--scroll-progress': scrollProgress, '--hero-progress': heroProgress, '--pointer-x': pointer.x, '--pointer-y': pointer.y } as React.CSSProperties}>
+    <style dangerouslySetInnerHTML={{ __html: ncxStyles }} />
+    <div className="ncx-progress" aria-hidden="true"><i /></div>
     <header className="nc-nav"><a href="#top" className="nc-brand"><span><Sparkles size={16} /></span> NOTECRAFT</a><nav className={mobileMenu ? 'nc-navlinks open' : 'nc-navlinks'}><a href="#studio">Studio</a><a href="#tools">Tools</a><a href="#method">Method</a></nav><div className="mode-picker"><button className="mode-toggle" aria-expanded={modeOpen} aria-controls="mode-options" onClick={() => setModeOpen((open) => !open)}>Mode <span>{mode}</span><ChevronDown size={13} /></button>{modeOpen && <div id="mode-options" className="mode-options" role="menu">{(['light', 'dark', 'auto', 'neon', 'ember', 'mono'] as const).map((option) => <button key={option} role="menuitem" className={mode === option ? 'active' : ''} onClick={() => { setMode(option); setModeOpen(false) }}>{option}</button>)}</div>}</div><button className="nc-menu" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Open navigation"><Menu size={18} /></button><button className="nc-nav-cta" onClick={() => inputRef.current?.click()}>Open files <ArrowRight size={14} /></button></header>
     <section id="top" className="nc-hero" onPointerMove={handleHeroPointer} onPointerLeave={() => setPointer({ x: 0, y: 0 })}><div className="nc-hero-stage"><div className="nc-orbit orbit-one" /><div className="nc-orbit orbit-two" /><div className="nc-hero-copy"><p className="nc-kicker"><span className="nc-pulse" /> Document operations, handled with intent</p><h1>Make every page<br /><em>land better.</em></h1><p className="nc-hero-sub">Merge, split, convert, and prepare documents in one controlled workspace.</p><div className="nc-hero-actions"><a href="#studio" className="nc-primary"><Play size={15} fill="currentColor" /> Start working</a><a href="#tools" className="nc-text-link">Explore the tools <ArrowDown size={14} /></a></div></div><div className="nc-hero-stack" aria-hidden="true"><div className="paper-fragment fragment-one">01 / 08<br /><b>BRIEF</b></div><div className="paper-fragment fragment-two">INDEX<br /><b>READY</b></div><div className="stack-back" /><div className="stack-mid" /><div className="stack-front"><span>DOCUMENT<br /><b>STUDIO</b></span><div className="stack-line" /><small>READY TO WORK</small></div></div><div className="nc-scroll-cue"><span>Scroll to work</span><ArrowDown size={14} /></div></div></section>
     <section id="studio" className="nc-studio"><div className="nc-section-heading"><div><p className="nc-kicker">The workspace</p><h2>One place for<br /><em>the full job.</em></h2></div><p>Choose an operation, add your files, and work through the document in your browser.</p></div><div className="nc-studio-grid"><aside className="nc-tool-rail"><p className="rail-label">Choose an operation</p>{tools.map((item) => { const Icon = item.icon; return <button key={item.id} onClick={() => chooseTool(item.id)} className={tool === item.id ? 'nc-tool active' : 'nc-tool'}><span className="tool-index" style={{ color: item.color }}>{item.eyebrow}</span><Icon size={19} /><span><b>{item.label}</b><small>{item.description}</small></span><ArrowRight size={15} /></button> })}</aside><section className="nc-workbench"><div className="workbench-top"><div><span className="workbench-number">{active.eyebrow} / {active.label}</span><h3>{active.label}</h3></div></div>{tool === 'pipeline' && <div className="pipeline-builder"><div><span className="workbench-number">WORKFLOW BUILDER</span><h4>Build your sequence</h4><p>Choose any operation, in any order. We will run the workflow from top to bottom.</p></div><div className="pipeline-steps">{pipeline.map((step, index) => <div className="pipeline-step" key={`${step}-${index}`}><b>{String(index + 1).padStart(2, '0')}</b><span>{pipelineTools.find((item) => item.id === step)?.label ?? step}</span><button type="button" onClick={() => setPipeline((current) => current.filter((_, stepIndex) => stepIndex !== index))} aria-label={`Remove ${step}`}>×</button></div>)}</div><div className="pipeline-settings">{pipeline.includes('split') && <div className="range-editor"><label>Split into ranges</label><p>Each range becomes one PDF. The merge step combines them in this order.</p>{splitRanges.map((range, index) => <div className="range-row" key={`range-${index}`}><span>{String(index + 1).padStart(2, '0')}</span><input autoFocus={index === splitRanges.length - 1} inputMode="text" value={range} onChange={(event) => setSplitRanges((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} placeholder="1-6" aria-label={`Page range ${index + 1}`} />{splitRanges.length > 1 && <button type="button" onClick={() => setSplitRanges((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove range ${index + 1}`}>×</button>}</div>)}<button type="button" className="add-range" onClick={() => setSplitRanges((current) => [...current, ''])}>+ Add another range</button></div>}</div><div className="pipeline-add"><span>ADD A STEP</span>{pipelineTools.map((item, index) => <button type="button" key={`${item.id}-${item.label}-${index}`} onClick={() => setPipeline((current) => [...current, item.id])}><small>{item.group}</small>{item.label}</button>)}</div></div>}{busy && <div className={`operation-scene operation-${pipeline[activePipelineIndex] ?? tool}`} aria-live="polite"><div className="operation-scene-art" aria-hidden="true"><span className="scene-sheet sheet-a" /><span className="scene-sheet sheet-b" /><span className="scene-sheet sheet-c" /><span className="scene-spark" /></div><div className="operation-scene-copy"><span className="workbench-number">LIVE WORKFLOW · {progress}%</span><strong>{tool === 'pipeline' ? liveOperationCopy : active.label}</strong><small>{tool === 'pipeline' ? `Step ${activePipelineIndex + 1} of ${pipeline.length} · transforming your files` : 'Processing · keep this tab open'}</small><div className="scene-progress"><i style={{ width: `${progress}%` }} /></div></div></div>}<div className="nc-dropzone" onClick={() => inputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files) }}><input ref={inputRef} type="file" hidden multiple accept={accepted} onChange={(event) => addFiles(event.target.files)} /><div className="drop-icon"><Upload size={22} /></div><h4>{files.length ? `${files.length} file${files.length > 1 ? 's' : ''} ready` : 'Drop files here'}</h4><p>or click to browse · {tool === 'image-pdf' ? 'JPG, PNG, WebP' : tool === 'pptx' ? 'PPTX' : 'PDF'}</p></div>{files.length > 0 && <div className="file-list">{files.map((file, index) => <div className="file-row" key={`${file.name}-${index}`}><span className="file-type">{file.name.split('.').pop()?.toUpperCase()}</span><span className="file-name">{file.name}</span><span className="file-size">{(file.size / 1024 / 1024).toFixed(1)} MB</span><button onClick={() => setFiles(files.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${file.name}`}><X size={15} /></button></div>)}<div className="file-total">{files.length} file{files.length > 1 ? 's' : ''} · {(totalSize / 1024 / 1024).toFixed(1)} MB total</div></div>}{error && <p className="nc-error" role="alert">{error}</p>}<div className="workbench-actions"><button className="nc-run" disabled={busy || !files.length} onClick={run}>{busy ? <><RefreshCw size={15} className="spin" /> Working {progress}%</> : <><Sparkles size={15} /> Run {active.label}</>}</button>{results.length > 0 && <button className="nc-secondary" onClick={downloadAll}><Download size={15} /> Download ZIP</button>}</div>{busy && <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>}{results.length > 0 && <div className="result-panel"><div className="result-heading"><span><Check size={16} /> Ready to download</span><small>{results.length} result{results.length > 1 ? 's' : ''}</small></div>{results.map((result) => <div className="result-row" key={result.name}><div><b>{result.name}</b><small>{result.meta}</small></div><button onClick={() => download(result.blob, result.name)} aria-label={`Download ${result.name}`}><Download size={16} /></button></div>)}</div>}</section></div></section>
     <section id="tools" className="nc-tool-showcase"><div className="nc-showcase-copy"><p className="nc-kicker">Built for momentum</p><h2>Small actions.<br /><em>Remarkable finish.</em></h2><p>From the first upload to the final download, every state is designed to keep you oriented. The result is less friction and more confidence in the file you send next.</p><a className="nc-primary dark" href="#studio">Open the studio <ArrowRight size={14} /></a></div><div className="nc-feature-cards"><article><span>01</span><strong>Order matters</strong><p>Arrange source files before merging. The final PDF follows your sequence exactly.</p></article><article><span>02</span><strong>Pages become assets</strong><p>Export pages as high-quality JPG files, individually or as one downloadable archive.</p></article><article><span>03</span><strong>Keep moving</strong><p>Finish one file, then move straight to the next.</p></article></div></section>
     <section id="method" className="nc-method"><div><p className="nc-kicker">The method</p><h2>Clarity is<br /><em>a feature.</em></h2></div><div className="method-steps"><div><b>01</b><span>Select</span><p>Pick the operation that matches the job.</p></div><div><b>02</b><span>Shape</span><p>Add files, set the order, and check the input.</p></div><div><b>03</b><span>Release</span><p>Download the result, or keep going with another file.</p></div></div></section>
-    <footer className="nc-footer"><div className="footer-brand"><span className="footer-mark">D</span><strong>DBMCI <b>one</b></strong></div><nav><a href="#studio">Studio</a><a href="#tools">Tools</a><a href="#method">Method</a></nav><div className="footer-rule" /><p>© 2026 DBMCI One. Document tools for everyday work.</p></footer>
+
+    <div className="ncx-ticker" aria-hidden="true">
+      <div className="ncx-ticker-track">
+        {[0, 1].map((loop) => (
+          <span key={loop}>
+            {tickerWords.map((word) => (
+              <b key={`${loop}-${word}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 28 }}>{word}<i /></b>
+            ))}
+          </span>
+        ))}
+      </div>
+    </div>
+
+    <footer className="nc-footer ncx-footer">
+      <div className="ncx-aurora a" aria-hidden="true" />
+      <div className="ncx-aurora b" aria-hidden="true" />
+      <div className="ncx-aurora c" aria-hidden="true" />
+      {[
+        { left: '18%', top: '30%', delay: '0s' },
+        { left: '34%', top: '62%', delay: '1.4s' },
+        { left: '57%', top: '22%', delay: '2.6s' },
+        { left: '73%', top: '54%', delay: '.7s' },
+        { left: '88%', top: '36%', delay: '3.3s' },
+        { left: '46%', top: '78%', delay: '2s' },
+      ].map((dust, index) => (
+        <span key={index} className="ncx-dust" style={{ left: dust.left, top: dust.top, animationDelay: dust.delay }} aria-hidden="true" />
+      ))}
+
+      <div className="ncx-grid">
+        <div>
+          <div className="ncx-lockup">
+            <span className="ncx-shield">
+              <svg width="40" height="44" viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path pathLength={1} d="M50 3 L93 17 L93 54 C93 80 74 99 50 107 C26 99 7 80 7 54 L7 17 Z" fill="none" stroke="#2F9CF4" strokeWidth="7" strokeLinejoin="round" strokeLinecap="round" />
+                <text x="50" y="72" textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="56" fontWeight="700" fill="#2F9CF4">D</text>
+              </svg>
+            </span>
+            <span className="ncx-wordmark">DBMCI one</span>
+          </div>
+
+          <p className="ncx-tag">Merge, split, convert, and prepare documents right in your browser. Nothing is uploaded to a server.</p>
+
+          <button type="button" className="ncx-cta" onClick={() => inputRef.current?.click()}>
+            Open files <ArrowRight size={14} />
+          </button>
+        </div>
+
+        <div>
+          <p className="ncx-colhead">Tools</p>
+          <ul className="ncx-list">
+            {tools.filter((item) => item.id !== 'pipeline').map((item) => (
+              <li key={item.id}>
+                <a href="#studio" className="ncx-link" onClick={() => chooseTool(item.id)}><i>›</i>{item.label}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <p className="ncx-colhead">Workspace</p>
+          <ul className="ncx-list">
+            <li><a href="#studio" className="ncx-link" onClick={() => chooseTool('pipeline')}><i>›</i>PDF Alchemy</a></li>
+            <li><a href="#tools" className="ncx-link"><i>›</i>Why Notecraft</a></li>
+            <li><a href="#method" className="ncx-link"><i>›</i>How it works</a></li>
+            <li><a href="#top" className="ncx-link"><i>›</i>Back to top</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="ncx-base">
+        <p>© 2026 DBMCI One. Document tools for everyday work.</p>
+        <p className="ncx-live"><i />Processed locally in your browser</p>
+      </div>
+    </footer>
   </main>
 }
